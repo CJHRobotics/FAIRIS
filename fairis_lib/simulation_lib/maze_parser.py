@@ -15,6 +15,8 @@ def parse_all_goals(root):
     return pd.concat([pd.DataFrame(columns=['id', 'x', 'y'])] + [parse_goal(xml_goal) for xml_goal in
                                                                  root.findall('goal')]).reset_index(drop=True)
 
+def parse_all_subgoals(root):
+    return parse_all_positions(root.find('subgoals'))
 
 def parse_all_goals(root):
     # Define the columns for the DataFrame
@@ -122,11 +124,12 @@ def parse_maze(file):
     experiment_start_positions = parse_all_positions(root.find('experimentStartPositions'))
     habituation_start_positions = parse_all_positions(root.find('habituationStartPositions'))
     walls = parse_all_obsticles(root)
+    subgoals = parse_all_subgoals(root)
     goals = parse_all_goals(root)
     cylinder_landmarks = parse_all_cylinder_landmarks(root)
     tag_landmarks = parse_all_tag_landmarks(root)
 
-    return walls, goals, experiment_start_positions, habituation_start_positions, cylinder_landmarks, tag_landmarks
+    return walls, goals, subgoals, experiment_start_positions, habituation_start_positions, cylinder_landmarks, tag_landmarks
 
 
 def parse_maze_for_wavefront(file):
