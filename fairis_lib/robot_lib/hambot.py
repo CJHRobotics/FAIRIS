@@ -1,4 +1,7 @@
 import operator
+
+import numpy as np
+
 from reinforcement_lib.reinforcement_utils.model_functions import *
 from fairis_tools.experiment_tools.image_processing.image_feature_lib import *
 from fairis_lib.simulation_lib.environment import Maze
@@ -99,15 +102,24 @@ class HamBot(Supervisor):
             self.cnn_feature_extractor = None
 
     # Preforms one timestep to update all sensors should be used when initializing robot and after teleport
-    def sensor_calibration(self):
+    def sensor_calibration(self,stop_num =1):
+        counter = 0
         while self.experiment_supervisor.step(self.timestep) != -1:
-            break
+            counter += 1
+            if counter > stop_num:
+                break
 
     def get_robot_pose(self):
         while self.experiment_supervisor.step(self.timestep) != -1:
             current_x, current_y, current_z = self.robot_translation_field.getSFVec3f()
             break
         return current_x, current_y, self.get_bearing()
+
+    def get_robot_feature_pose(self):
+        while self.experiment_supervisor.step(self.timestep) != -1:
+            current_x, current_y, current_z = self.robot_translation_field.getSFVec3f()
+            break
+        return current_x, current_y, self.get_closest_action_heading()
 
     def get_robot_pov_features(self, landmark_dictionary):
         """
@@ -132,21 +144,48 @@ class HamBot(Supervisor):
 
         return multimodal_features, cnn_features, landmark_mask
 
-    def get_pov_image(self, landmark_dictionary):
+    def get_full_robot_pov_features(self,thetas):
+        robot_x, robot_y, robot_theta = self.get_robot_feature_pose()
+        multimodal_features = []
+        cnn_features = []
+        for theta in thetas:
+            self.teleport_robot(x=robot_x, y=robot_y, theta=theta)
+            pov = self.get_pov_image()
+            multimodal_features.append(extract_combined_features(pov))
+            # Extract CNN features if enabled
+            if self.enable_cnn_features:
+                cnn_features.append(self.cnn_feature_extractor.get_cnn_features(pov))
+            else:
+                cnn_features = np.array([])  # Empty array if CNN features are not enabled
+        multimodal_features = np.concatenate(multimodal_features)
+        cnn_features = None
+        return multimodal_features, cnn_features
+
+
+
+
+
+
+
+
+
+    def get_pov_image(self, landmark_dictionary=None):
         while self.experiment_supervisor.step(self.timestep) != -1:
             landmark_mask = [0, 0, 0, 0, 0, 0, 0, 0, 0]
             pov = self.camera.getImageArray()
-            landmarks = self.camera.getRecognitionObjects()
-            for landmark in landmarks:
-                color = landmark.getColors()
-                color = [color[0], color[1], color[2]]
-                key_list = list(landmark_dictionary.keys())
-                val_list = list(landmark_dictionary.values())
-                position = val_list.index(color)
-                mask_index = key_list[position]
-                landmark_mask[mask_index] = 1
-            break
-        return pov, landmark_mask
+            if landmark_dictionary != None:
+                landmarks = self.camera.getRecognitionObjects()
+                for landmark in landmarks:
+                    color = landmark.getColors()
+                    color = [color[0], color[1], color[2]]
+                    key_list = list(landmark_dictionary.keys())
+                    val_list = list(landmark_dictionary.values())
+                    position = val_list.index(color)
+                    mask_index = key_list[position]
+                    landmark_mask[mask_index] = 1
+                return pov, landmark_mask
+            return pov
+
 
     # Reads the robot's IMU compass and return bearing in degrees
     #   North   -> 90
@@ -162,6 +201,29 @@ class HamBot(Supervisor):
 
     def get_closest_action_index(self):
         return int((self.get_bearing() // 45))
+
+    def get_closest_action_heading(self):
+        """
+        Rounds the given heading (in degrees) to the nearest increment of 45 degrees.
+        Handles headings in the range [0, 360] and ensures 360 is treated as 0.
+
+        Parameters:
+        - heading: float or int, the heading in degrees (e.g., 314, 316, 5, 360, 355).
+
+        Returns:
+        - int: The closest heading that is a multiple of 45 (0, 45, 90, 135, 180, 225, 270, 315).
+        """
+        # Normalize heading to [0, 360)
+        heading = self.get_bearing() % 360
+
+        # Divide by 45, round to nearest integer, and multiply back by 45
+        closest_heading = round(heading / 45) * 45
+
+        # Ensure 360 is returned as 0
+        if closest_heading == 360:
+            closest_heading = 0
+
+        return closest_heading
 
     def get_min_lidar_reading(self):
         self.sensor_calibration()
@@ -357,6 +419,7 @@ class HamBot(Supervisor):
         return random_action_index
 
     def perform_habituation_action(self, bias=True):
+        self.sensor_calibration()
         available_actions = [int(i) for i in self.get_possible_actions()]
         # Add motion Bias and normalize
         if bias:
@@ -364,14 +427,18 @@ class HamBot(Supervisor):
         else:
             action_distribution = apply_softmax(available_actions)
         random_action_index = np.random.choice(8, 1, p=action_distribution)[0]
-        if self.check_if_action_is_possible(random_action_index):
+        if self.check_if_action_is_possible(random_action_index,teleport=True):
             self.perform_training_action_teleport(random_action_index)
         else:
-            random_action_index = np.argmax(action_distribution)
-            self.perform_training_action_teleport(random_action_index)
+            # Try the remaining actions sorted by probability
+            sorted_indices = np.argsort(action_distribution)[::-1]  # descending order
+            for idx in sorted_indices:
+                if self.check_if_action_is_possible(idx, teleport=True):
+                    self.perform_training_action_teleport(idx)
+                    random_action_index = idx
+                    break
 
         self.previous_action_index = random_action_index
-        self.sensor_calibration()
         return random_action_index
 
     def perform_action_with_PID(self, action_index):
@@ -426,8 +493,8 @@ class HamBot(Supervisor):
         available_actions = np.array(self.get_possible_actions())
         return np.array(np.multiply(available_actions, 1), dtype=np.float32)
 
-    def check_if_action_is_possible(self, action_index=-1):
-        forward_lidar_window = 30
+    def check_if_action_is_possible(self, action_index=-1,teleport=False):
+        forward_lidar_window = 45
         min_action_distance = .5
         if action_index == -1:
             if min(self.lidar.getRangeImage()[180-forward_lidar_window:180+forward_lidar_window]) > min_action_distance:
@@ -436,7 +503,11 @@ class HamBot(Supervisor):
                 return False
         else:
             action = self.action_set.get(action_index)
-            self.rotate_to(action[0])
+            if teleport:
+                curr_x, curr_y, curr_theta = self.get_robot_pose()
+                self.teleport_robot(curr_x,curr_y,theta= math.radians(action[0]))
+            else:
+                self.rotate_to(action[0])
             if min(self.lidar.getRangeImage()[180-forward_lidar_window:180+forward_lidar_window]) > min_action_distance:
                 return True
             else:

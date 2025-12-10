@@ -369,7 +369,7 @@ PROTO HamBot [
         horizontalResolution 360
         numberOfLayers 1
         near 0.05
-        minRange 0.0700000
+        minRange 0.0500000
         maxRange 12.000000
         noise 0.000833
         resolution 0.010000
@@ -379,55 +379,54 @@ PROTO HamBot [
         name "gps"
       }
       Display {
-        width 1000
+        width 800
         height 800
         name "Place Cell Display"
       }
 
-      DEF CASTER_JOINT_REAR BallJoint {
-        jointParameters BallJointParameters {
-          anchor -0.063 -0.001 -0.021
-        }
-        endPoint Solid {
-          name "Front"
-          translation -0.063 -0.001 -0.021
-          children [
-            Shape {
-
-              appearance PBRAppearance {
-              }
-              geometry DEF CASTER_SPHERE_REAR Sphere {
-                radius 0.0109
-                subdivision 2
-              }
+      DEF CASTER_REAR Solid {
+        translation -0.063 -0.001 -0.021
+        children [
+          Shape {
+            appearance PBRAppearance {
             }
-          ]
-          boundingObject USE CASTER_SPHERE_REAR
-          physics Physics {
+            geometry DEF CASTER_SPHERE_REAR Sphere {
+              radius 0.0109
+              subdivision 4  # Increased for smoother contacts
+            }
+          }
+        ]
+        name "caster_rear"  # Updated from "Front" (assuming that was a typo); adjust if needed
+        boundingObject USE CASTER_SPHERE_REAR
+        physics Physics {
+          damping Damping {
+            linear 0.1
+            angular 0.1
           }
         }
+        contactMaterial "casterWheel"
       }
-      DEF CASTER_JOINT_FRONT BallJoint {
-        jointParameters BallJointParameters {
-          anchor 0.0635 -0.000 -0.021
-        }
-        endPoint Solid {
-
-          translation 0.0635 -0.000 -0.021
-          children [
-            Shape {
-              appearance PBRAppearance {
-              }
-              geometry DEF CASTER_SPHERE_FRONT Sphere {
-                radius 0.0109
-                subdivision 2
-              }
+      DEF CASTER_FRONT Solid {
+        translation 0.0635 -0.000 -0.021
+        children [
+          Shape {
+            appearance PBRAppearance {
             }
-          ]
-          boundingObject USE CASTER_SPHERE_FRONT
-          physics Physics {
+            geometry DEF CASTER_SPHERE_FRONT Sphere {
+              radius 0.0109
+              subdivision 4  # Increased slightly for smoother contacts, optional but recommended
+            }
+          }
+        ]
+        name "caster_front"  # Optional, for easy reference in supervisors
+        boundingObject USE CASTER_SPHERE_FRONT
+        physics Physics {
+          damping Damping {
+            linear 0.1
+            angular 0.1
           }
         }
+        contactMaterial "casterWheel"
       }
     ]
 

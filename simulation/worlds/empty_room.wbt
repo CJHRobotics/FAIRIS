@@ -7,10 +7,24 @@ IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Landmark.proto"
 IMPORTABLE EXTERNPROTO "../protos/WorldObjects/Obstacle.proto"
 EXTERNPROTO "../protos/HamBot/HamBot.proto"
 IMPORTABLE EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/traffic/protos/RectangularPanel.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/appearances/protos/Parquetry.proto"
 
 WorldInfo {
-  ERP 0.8
+  ERP 1
   randomSeed 25
+  contactProperties [
+    ContactProperties {
+      material1 "casterWheel"
+      coulombFriction [
+        0.1
+      ]
+      bounce 0
+    }
+    ContactProperties {
+      material1 "driveWheel"
+      bounce 0
+    }
+  ]
 }
 Viewpoint {
   orientation -0.5773455889172111 0.577345453238615 0.5773597652959 2.094323863445673
@@ -24,8 +38,10 @@ TexturedBackgroundLight {
 Floor {
   name "Maze Floor"
   tileSize 2 2
+  appearance Parquetry {
+    type "light strip"
+  }
 }
 HamBot {
   translation 0 0 0.032
 }
-

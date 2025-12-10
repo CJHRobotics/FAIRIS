@@ -24,15 +24,17 @@ def extract_spatial_histogram(image, size=(32, 32)):
     return downscaled_image
 
 
-def extract_combined_features(image, landmark_mask, robot_theta):
+def extract_combined_features(image, landmark_mask=None, robot_theta=None):
     # Ensure the image is in the correct format
     image = np.array(image, dtype=np.uint8)[:, :, :3]
-
     # Extract individual features
     hog_features = extract_hog_features(image)
     color_histogram = extract_color_histogram(image)
     spatial_histogram = extract_spatial_histogram(image)
-
-    # Concatenate all features into a single flat feature vector
-    combined_features = np.concatenate([hog_features, color_histogram, spatial_histogram, landmark_mask, [robot_theta]])
+    if landmark_mask is not None and robot_theta is not None:
+        # Concatenate all features into a single flat feature vector
+        combined_features = np.concatenate([hog_features, color_histogram, spatial_histogram, landmark_mask, [robot_theta]])
+    else:
+        combined_features = np.concatenate([hog_features, color_histogram, spatial_histogram])
     return combined_features
+
