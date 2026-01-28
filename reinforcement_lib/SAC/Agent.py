@@ -8,7 +8,7 @@ from reinforcement_lib.reinforcement_utils.replay_buffer import ReplayBuffer
 
 class Agent():
     def __init__(self, alpha=0.0003, beta=0.0003, input_dims=[8],
-                 env=None, gamma=0.95, n_actions=8, max_size=1000000, tau=0.005,
+                 n_layers=3, layer_size=32, gamma=0.95, n_actions=8, max_size=1000000, tau=0.005,
                  layer1_size=256, layer2_size=256, batch_size=256, reward_scale=4, ver_name=''):
         self.gamma = gamma
         self.tau = tau
@@ -18,6 +18,8 @@ class Agent():
 
         self.actor = ActorNetwork(alpha,
                                   input_dims,
+                                  n_layers,
+                                  layer_size,
                                   fc1_dims=layer1_size,
                                   fc2_dims=layer2_size,
                                   n_actions=n_actions,
@@ -26,6 +28,8 @@ class Agent():
                                   max_action=1)
         self.critic_1 = CriticNetwork(beta,
                                       input_dims,
+                                      n_layers,
+                                      layer_size,
                                       fc1_dims=layer1_size,
                                       fc2_dims=layer2_size,
                                       n_actions=n_actions,
@@ -33,6 +37,8 @@ class Agent():
                                       ver_name=ver_name)
         self.critic_2 = CriticNetwork(beta,
                                       input_dims,
+                                      n_layers,
+                                      layer_size,
                                       n_actions=n_actions,
                                       fc1_dims=layer1_size,
                                       fc2_dims=layer2_size,
@@ -40,12 +46,16 @@ class Agent():
                                       ver_name=ver_name)
         self.value = ValueNetwork(beta,
                                   input_dims,
+                                  n_layers,
+                                  layer_size,
                                   fc1_dims=layer1_size,
                                   fc2_dims=layer2_size,
                                   name='value',
                                   ver_name=ver_name)
         self.target_value = ValueNetwork(beta,
                                          input_dims,
+                                         n_layers,
+                                         layer_size,
                                          fc1_dims=layer1_size,
                                          fc2_dims=layer2_size,
                                          name='target_value',

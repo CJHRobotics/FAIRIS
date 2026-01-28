@@ -8,21 +8,28 @@ from torch.distributions.categorical import Categorical
 from reinforcement_lib.reinforcement_utils.ppo_memory import PPOMemory
 
 class ActorNetwork(nn.Module):
-    def __init__(self, n_actions, input_dims, alpha,
+    def __init__(self, n_actions, input_dims, alpha, n_layers, layer_size,
                  fc1_dims=128, fc2_dims=256, name='actor_torch_ppo', ver_name='', chkpt_dir='data/SavedModels/PPO'):
         super(ActorNetwork, self).__init__()
         self.name = name + ver_name
         self.checkpoint_file = os.path.join(chkpt_dir, self.name)
+        #fc2_dims = layer_size
         self.actor = nn.Sequential(
-            nn.Linear(*input_dims, fc1_dims),
+            nn.Linear(*input_dims, layer_size),
             nn.ReLU(),
-            nn.Linear(fc1_dims, fc2_dims),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU(),
-            nn.Linear(fc2_dims, n_actions),
+            #nn.Linear(fc1_dims, fc2_dims),
+            #nn.ReLU(),
+#            nn.Linear(256, 256),
+#            nn.ReLU(),
+            nn.Linear(layer_size, n_actions),
             nn.Softmax(dim=-1)
         )
+
+        for idx in range(n_layers-2):
+            self.actor.insert(2, nn.ReLU())
+            self.actor.insert(2, nn.Linear(layer_size, layer_size))
+
+#        print(self.actor)
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
@@ -42,20 +49,25 @@ class ActorNetwork(nn.Module):
 
 
 class CriticNetwork(nn.Module):
-    def __init__(self, input_dims, alpha, fc1_dims=128, fc2_dims=256, name='critic_torch_ppo', ver_name='',
+    def __init__(self, input_dims, alpha, n_layers, layer_size, fc1_dims=128, fc2_dims=256, name='critic_torch_ppo', ver_name='',
                  chkpt_dir='data/SavedModels/PPO'):
         super(CriticNetwork, self).__init__()
         self.name = name + ver_name
         self.checkpoint_file = os.path.join(chkpt_dir, self.name)
+#        fc2_dims = layer_size
         self.critic = nn.Sequential(
-            nn.Linear(*input_dims, fc1_dims),
+            nn.Linear(*input_dims, layer_size),
             nn.ReLU(),
-            nn.Linear(fc1_dims, fc2_dims),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU(),
-            nn.Linear(fc2_dims, 1)
+#            nn.Linear(fc1_dims, fc2_dims),
+#            nn.ReLU(),
+#            nn.Linear(256, 256),
+#            nn.ReLU(),
+            nn.Linear(layer_size, 1)
         )
+
+        for idx in range(n_layers-2):
+            self.critic.insert(2, nn.ReLU())
+            self.critic.insert(2, nn.Linear(layer_size, layer_size))
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
@@ -75,14 +87,14 @@ class CriticNetwork(nn.Module):
 
 class Agent:
     def __init__(self, n_actions, input_dims, gamma=0.99, alpha=0.0003, gae_lambda=0.95,
-                 policy_clip=0.2, batch_size=64, n_epochs=10, ver_name=''):
+                 policy_clip=0.2, batch_size=64, n_epochs=10, ver_name='', n_layers=4, layer_size=256):
         self.gamma = gamma
         self.policy_clip = policy_clip
         self.n_epochs = n_epochs
         self.gae_lambda = gae_lambda
 
-        self.actor = ActorNetwork(n_actions, input_dims, alpha, ver_name=ver_name)
-        self.critic = CriticNetwork(input_dims, alpha, ver_name=ver_name)
+        self.actor = ActorNetwork(n_actions, input_dims, alpha, n_layers, layer_size, ver_name=ver_name)
+        self.critic = CriticNetwork(input_dims, alpha, n_layers, layer_size, ver_name=ver_name)
         self.memory = PPOMemory(batch_size)
 
     def remember(self, state, action, probs, vals, reward, done):

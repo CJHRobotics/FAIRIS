@@ -380,6 +380,17 @@ class RosBot(Supervisor):
                 self.slow_stop()
                 break
 
+    # Runs motors at provided velocity for n timesteps
+    def set_velocities(self, velocities, time_amount):
+        dur = 0
+        while (dur <= time_amount) and (self.experiment_supervisor.step(self.timestep) != -1):
+            dur += self.timestep
+            self.front_left_motor.setVelocity(velocities[0])
+            self.rear_left_motor.setVelocity(velocities[0])
+            self.front_right_motor.setVelocity(velocities[1])
+            self.rear_right_motor.setVelocity(velocities[1])
+
+
     # Moves the robot forward in a straight line by the amount distance (in mm)
     def move_forward_no_PID(self, distance, velocity=20, margin_error=.01):
         starting_encoder_position = self.get_encoder_readings()
