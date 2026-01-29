@@ -19,7 +19,7 @@ class PovDataset:
     def __init__(self):
         self.observations = []
 
-    def add_observations(self, multimodal_feature_vector, cnn_feature_vector, x, y, theta, landmark_mask):
+    def add_observations(self, multimodal_feature_vector, cnn_feature_vector, x, y, theta, landmark_mask= [0,0,0,0,0,0,0,0,0]):
         """
         Adds a new datapoint to the dataset.
         """
