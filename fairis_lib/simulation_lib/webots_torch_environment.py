@@ -27,7 +27,7 @@ class WebotsEnv(py_environment.PyEnvironment):
         self.current_step = 0
         self.episode_counter = 0
         self.starting_permutaions = np.random.permutation(4)
-        self.robot = HamBot(action_length=action_length)
+        self.robot = HamBot(action_length=action_length, use_camera=False)
         self.set_mode()
         self.action_space = Discrete(n=8)
         self.pc_type = pc_type

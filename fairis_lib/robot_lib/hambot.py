@@ -13,14 +13,16 @@ from fairis_tools.experiment_tools.image_processing.feature_extractor import Fea
 class HamBot(Supervisor):
 
     # Initiilize an instance of Webots Harrison's RosBot
-    def __init__(self, action_length=0.5,enable_cnn_features=False,cnn_extractor_model=None):
+    def __init__(self, action_length=0.5,enable_cnn_features=False,cnn_extractor_model=None,use_pc_display=False,use_camera=True):
 
         # Inherent from Webots Robot Class: https://cyberbotics.com/doc/reference/robot
         self.experiment_supervisor = Supervisor()
 
         # Add a display to plot the place cells as they are generated
-        self.pc_display = self.experiment_supervisor.getDevice('Place Cell Display')
-        self.pc_display.setOpacity(1.0)
+        self.use_pc_display = use_pc_display
+        if use_pc_display:
+            self.pc_display = self.experiment_supervisor.getDevice('Place Cell Display')
+            self.pc_display.setOpacity(1.0)
 
         # Sets Supervisor Root Nodes
         self.root_node = self.experiment_supervisor.getRoot()
@@ -74,8 +76,9 @@ class HamBot(Supervisor):
 
         # Webots Camera: https://cyberbotics.com/doc/reference/camera
         self.camera = self.experiment_supervisor.getDevice('camera')
-        self.camera.enable(self.timestep)
-        self.camera.recognitionEnable(self.timestep)
+        if use_camera:
+            self.camera.enable(self.timestep)
+            self.camera.recognitionEnable(self.timestep)
 
         # Webots RpLidarA2: https://www.cyberbotics.com/doc/guide/lidar-sensors#slamtec-rplidar-a2
         self.lidar = self.experiment_supervisor.getDevice('lidar')
@@ -446,8 +449,10 @@ class HamBot(Supervisor):
         if self.check_if_action_is_possible(action_index=action_index):
             self.rotate_to(action[0])
             self.move_forward_with_PID(action[1])
+            return 0
         else:
-            print("cant preform action")
+            #print("cant preform action")
+            return -1
 
     def perform_action_no_PID(self, action_index):
         action = self.action_set.get(action_index)
@@ -518,15 +523,20 @@ class HamBot(Supervisor):
 
     # Takes in a xml maze file and creates the walls, starting locations, and goal locations
     def load_environment(self, maze_file):
-        self.maze = Maze(maze_file, display_width=self.pc_display.getWidth(),
-                         display_height=self.pc_display.getHeight())
+        if self.use_pc_display:
+            self.maze = Maze(maze_file, display_width=self.pc_display.getWidth(),
+                            display_height=self.pc_display.getHeight())
+        else:
+            self.maze = Maze(maze_file)
+
         self.pc_figure, self.pc_figure_ax = self.maze.get_maze_figure()
         self.pc_figure.savefig('data/DataCache/temp.png')
 
-        while self.experiment_supervisor.step(self.timestep) != -1:
-            ir = self.pc_display.imageLoad('data/DataCache/temp.png')
-            self.pc_display.imagePaste(ir, 0, 0, True)
-            break
+        if self.use_pc_display:
+            while self.experiment_supervisor.step(self.timestep) != -1:
+                ir = self.pc_display.imageLoad('data/DataCache/temp.png')
+                self.pc_display.imagePaste(ir, 0, 0, True)
+                break
 
         self.obstical_nodes = []
         self.boundry_wall_nodes = []
@@ -601,8 +611,9 @@ class HamBot(Supervisor):
         return distance_to_goal
 
     def show_loaded_pc_network(self, pc_network):
-        for pc in pc_network.pc_list:
-            self.update_pc_display(pc)
+        if self.use_pc_display:
+            for pc in pc_network.pc_list:
+                self.update_pc_display(pc)
 
     # Plots Place cells and shows them on the Display
     def update_pc_display(self, place_cell):
