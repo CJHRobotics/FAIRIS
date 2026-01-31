@@ -180,3 +180,7 @@ simulation/controllers/V*
 simulation/controllers/H*
 TODO.MD
 .DS_Store.DS_Store
+
+
+# GAIVI Output logs
+*.out
