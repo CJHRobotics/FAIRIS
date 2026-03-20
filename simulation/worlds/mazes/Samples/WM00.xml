@@ -2,9 +2,9 @@
 <world>
 	<experimentStartPositions>
 		<pos x="0.0" y="2.5" theta="1.5707963267948966" />
-		<pos x="0.0" y="-2.5" theta="1.5707963267948966" />
-		<pos x="-2.5" y="0.0" theta="1.5707963267948966" />
-		<pos x="2.5" y="0.0" theta="1.5707963267948966" />
+		<pos x="0.0" y="2.5" theta="1.5707963267948966" />
+		<pos x="0.0" y="2.5" theta="1.5707963267948966" />
+		<pos x="0.0" y="2.5" theta="1.5707963267948966" />
 	</experimentStartPositions>
 	<habituationStartPositions>
 		<pos x="-2.5" y="-2.5" theta="1.5707963267948966" />

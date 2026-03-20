@@ -11,11 +11,9 @@ import os
 import matplotlib.pyplot as plt
 
 class FAIRISEnvTF:
-    def __init__(self, maze_filet, horizont, sequence_learningt, reward_lent, noiset=False, noise_stdt=0.1, noise_meant=0.0):
+    def __init__(self, maze_filet, horizont, noiset=False, noise_stdt=0.1, noise_meant=0.0):
         self.robot = hambot.HamBot(use_camera=False)#rosbot.RosBot()
         self.maze_file = maze_filet
-#        with open(pc_filet, 'rb') as pc_file:
-#            self.pc_net = pickle.load(pc_file)
 
         self.first_run = True
         self.horizon = horizont
@@ -25,8 +23,6 @@ class FAIRISEnvTF:
         self.path = []
         self.ops = []
         self.last_reward = False
-        self.sequence_learning = sequence_learningt
-        self.reward_len = reward_lent
         self.cur_reward = 0
         self.noise = noiset
         self.noise_std = noise_stdt
@@ -55,8 +51,6 @@ class FAIRISEnvTF:
         y_noisy = np.clip(y + noise_y, -1*clip_amount, clip_amount)
         return x_noisy, y_noisy
 
-    def get_optimality_ratio(self, path_len):
-        return path_len
 #        return abs(path_len - self.optimal_len) / self.optimal_len
 
 #    def get_place_cell(self, x, y):
@@ -88,13 +82,12 @@ class FAIRISEnvTF:
         if self.first_run:
             self.robot.load_environment(self.maze_file)
             self.first_run = False
-            print(f"Env subgoals: {self.robot.maze.subgoals}, goals: {self.robot.maze.goal_locations}")
+#            print(f"Env subgoals: {self.robot.maze.subgoals}, goals: {self.robot.maze.goal_locations}")
 
         self.robot.move_to_random_experiment_start()
         if self.changeStartXY:
             self.robot.teleport_robot(self.changeStartXY[0], self.changeStartXY[1])
         self.robot.experiment_supervisor.simulationResetPhysics()
-        self.last_reward = False
 
         # Get state
         state = self.getState()
@@ -115,33 +108,15 @@ class FAIRISEnvTF:
 
         # Calculate reward
 #        if self.robot.check_at_goal():
-        if not(self.sequence_learning):
-            if self.robot.check_at_goal():
-                reward = 10
-                done = True
+        if self.robot.check_at_goal():
+            reward = 10
+            done = True
 #                print("robot at goal")
-        else:
-            at_goal, finished = self.robot.check_at_subgoal()
-            if at_goal:
-#                print(f"The value of finished is: {finished}")
-                reward = 10
-                if finished:
-#                    print("Finished!!!!")
-                    done = True
-                else:
-                    self.robot.next_subgoal()
-                    self.cur_reward = self.reward_len
         if self.length >= self.horizon:
             done = True
             reward = -1
         elif value == -1:
             reward = -1
-        else:
-            if self.cur_reward > 0:
-                reward = 10
-                self.cur_reward -= 1
-            else:
-                reward = -0.5
 #                if self.cur_reward == 0:
 #                    reward = -1.5
 #                else:
@@ -158,10 +133,7 @@ class FAIRISEnvTF:
 
     def get_path(self):
         self.store_path = False
-        return self.path, self.ops
-
-    def set_option(self, option):
-        self.cur_op = option
+        return self.path
 
     def closeSim(self, status):
         self.robot.experiment_supervisor.simulationQuit(status)

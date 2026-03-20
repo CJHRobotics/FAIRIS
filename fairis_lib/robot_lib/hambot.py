@@ -549,16 +549,16 @@ class HamBot(Supervisor):
         for boundary_wall in self.maze.boundary_walls:
             self.children_field.importMFNodeFromString(-1, boundary_wall.get_webots_node_string())
             self.boundry_wall_nodes.append(self.experiment_supervisor.getFromDef('Obstacle'))
-        for cylinder_landmark in self.maze.cylinder_landmarks:
-            self.children_field.importMFNodeFromString(-1, cylinder_landmark.get_webots_node_string())
-            self.cylinder_landmark_nodes.append(self.experiment_supervisor.getFromDef('Landmark'))
-        for tag_landmark in self.maze.tag_landmarks:
-            self.children_field.importMFNodeFromString(-1, tag_landmark.get_webots_node_string())
-            self.tag_landmark_nodes.append(self.experiment_supervisor.getFromDef('RectangularPanel'))
+#        for cylinder_landmark in self.maze.cylinder_landmarks:
+#            self.children_field.importMFNodeFromString(-1, cylinder_landmark.get_webots_node_string())
+#            self.cylinder_landmark_nodes.append(self.experiment_supervisor.getFromDef('Landmark'))
+##        for tag_landmark in self.maze.tag_landmarks:
+#            self.children_field.importMFNodeFromString(-1, tag_landmark.get_webots_node_string())
+#            self.tag_landmark_nodes.append(self.experiment_supervisor.getFromDef('RectangularPanel'))
 
     def reset_environment(self):
         self.teleport_robot(theta=math.pi / 2)
-        total_nodes = len(self.obstical_nodes) + len(self.boundry_wall_nodes) + len(self.landmark_nodes)
+        total_nodes = len(self.obstical_nodes) + len(self.boundry_wall_nodes)
         for i in range(total_nodes):
             self.children_field.removeMF(-1)
         self.maze.close_maze_figure()
